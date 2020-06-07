@@ -1,0 +1,37 @@
+﻿@model RestauracjaWebAPP.Models.Table
+
+<h2>@Model.Name</h2>
+<table>
+    <tbody>
+        <tr>
+            <td class="boldText">Numer dania</td>
+            <td class="boldText">Nazwa dania</td>
+            <td class="boldText">Zamówione ilość</td>
+            <td class="boldText">Cena za 1 porcję</td>
+            <td class="boldText">Cena za całość</td>
+        </tr>
+        @for (int a = 0; a < Model.Orders.First().Dishes.Count; a++)
+        {
+            var dish = Model.Orders.First().Dishes[a];
+            <tr>
+                <td>@(a + 1)</td>
+                <td>@dish.Name</td>
+                <td style="position:relative">
+                    <input id="dish_@a" class="tableInput" type="number" value="@dish.Quantity" onchange="updatePrice(this)">
+                </td>
+                <td id="dishPrice_@a">@dish.Price zł</td>
+                <td id="dishTotalPrice_@a">@(dish.Price * dish.Quantity) zł</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script type="text/javascript">
+    function updatePrice(sender) {
+        var id = sender.id.substring(5);
+        var price = $("#dishPrice_" + id).html();
+        var quantity = sender.value;
+        price = price.substr(0, price.indexOf(" "));
+        $("#dishTotalPrice_" + id).html(price * quantity + " zł");
+    }
+</script>
