@@ -121,10 +121,13 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\_TableViewController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\DataAccess.cs" />
     <Compile Include="Models\Dish.cs" />
+    <Compile Include="Models\DishContainer.cs" />
     <Compile Include="Models\Order.cs" />
     <Compile Include="Models\Room.cs" />
     <Compile Include="Models\Table.cs" />
@@ -152,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Views\_TableView\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff2" />

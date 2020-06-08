@@ -5,8 +5,9 @@ using System.Web;
 
 namespace RestauracjaWebAPP.Models
 {
-    public class Room
+    public class DishContainer
     {
-        public List<Table> Tables { get; set; } = new List<Table>();
+        public Dish DishObject { get; set; }
+        public int Quantity { get; set; }
     }
 }

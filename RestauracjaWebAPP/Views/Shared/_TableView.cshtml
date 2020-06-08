@@ -9,29 +9,73 @@
             <td class="boldText">Zamówione ilość</td>
             <td class="boldText">Cena za 1 porcję</td>
             <td class="boldText">Cena za całość</td>
+            <td class="boldText">Usuń</td>
         </tr>
         @for (int a = 0; a < Model.Orders.First().Dishes.Count; a++)
         {
             var dish = Model.Orders.First().Dishes[a];
             <tr>
                 <td>@(a + 1)</td>
-                <td>@dish.Name</td>
+                <td>@dish.DishObject.Name</td>
                 <td style="position:relative">
-                    <input id="dish_@a" class="tableInput" type="number" value="@dish.Quantity" onchange="updatePrice(this)">
+                    <input id="dish_@a" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateQuantity(this)">
                 </td>
-                <td id="dishPrice_@a">@dish.Price zł</td>
-                <td id="dishTotalPrice_@a">@(dish.Price * dish.Quantity) zł</td>
+                <td id="dishPrice_@a">@(dish.DishObject.Price)zł</td>
+                <td id="dishTotalPrice_@a">@(dish.DishObject.Price * dish.Quantity)zł</td>
+                <td style="position: relative">
+                    <button id="removeDish_@a" class="removeButton" onclick="removeDish(this)">Usuń</button>
+                </td>
             </tr>
         }
     </tbody>
 </table>
 
+<button onclick="postUpdate()">TEST</button>
+
 <script type="text/javascript">
-    function updatePrice(sender) {
-        var id = sender.id.substring(5);
-        var price = $("#dishPrice_" + id).html();
-        var quantity = sender.value;
-        price = price.substr(0, price.indexOf(" "));
-        $("#dishTotalPrice_" + id).html(price * quantity + " zł");
+
+    function postUpdate() {
+        
     }
+
+    function updateQuantity(sender) {
+        var id = sender.id.substring(sender.id.indexOf("_")+1);
+        var quantity = sender.value;
+        var totalPrice = 0;
+
+        var body = {};
+        body.tableId = @Model.Id;
+        body.orderId = @Model.CurrentOrder;
+        body.dishId = id;
+        body.quantity = quantity;
+
+        $.ajax({
+            type: "POST",
+            url: "/Table/UpdateDish",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body),
+            success: function (result) {
+                if (result.success) {
+                    totalPrice = result.message;
+                    $("#dishTotalPrice_" + id).html(totalPrice + "zł");
+                }
+                else
+                    alert("Błąd podczas aktualizacji zamówienia! Treść błędu: " + result.message);
+            }
+        })
+    }
+
+    function removeDish(sender) {
+        var id = sender.id.substring(sender.id.indexOf("_") + 1);
+        var dishQuantity = $("#dish_" + id);
+        dishQuantity.css("background-color", "#cd5c5c");
+    }
+
+    function restoreDish(sender) {
+        var id = sender.id.substring(sender.id.indexOf("_") + 1);
+        var dishQuantity = $("#dish_" + id);
+        dishQuantity.css("background-color", "#ffffff");
+    }
+
 </script>

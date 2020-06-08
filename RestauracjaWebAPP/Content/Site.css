@@ -47,3 +47,27 @@ td {
     bottom: 0;
     outline: none;
 }
+
+.removeButton {
+    background: #970000;
+    color: #e8e8e8;
+    border: none;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.restoreButton{
+    background: #970000;
+    color: #e8e8e8;
+    border: none;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
