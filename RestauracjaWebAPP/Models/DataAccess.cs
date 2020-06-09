@@ -37,8 +37,10 @@ namespace RestauracjaWebAPP.Models
 
             GetDishes();
             for (int a = 0; a < 5; a++)
-                GetRoom.Tables.Add(new Table() { Name = $"Stolik {a + 1}"});
-            AddOrder(GetRoom.Tables.First());
+            {
+                GetRoom.Tables.Add(new Table() { Id = a, Name = $"Stolik {a + 1}" });
+                AddOrder(GetRoom.Tables[a]);
+            }
         }
 
         public double GetDishPrice(int dishId)

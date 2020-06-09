@@ -6,19 +6,39 @@
 
 <h1>Obsługa zamówień</h1>
 <h2>Wybierz stolik</h2>
-<select id="tableSelect">
-    @foreach(var table in Model.Tables)
+<select id="tableSelect" onchange="loadTable()" >
+    @foreach (var table in Model.Tables)
     {
-        <option value="@table.Name">@table.Name</option>
+        <option value="@table.Id">@table.Name</option>
     }
-</select>
-@{ 
-    Html.RenderPartial("_TableView", Model.Tables[0]);
-}
+</select> 
+
+<div id="tableContainer">
+    @{Html.RenderPartial("_TableView", Model.Tables[0]);}
+</div>
 
 
-<script type="text/javascript">
-    function changeTable() {
+<script>
 
-    }
+    function loadTable () {
+        var selectedElement = $("#tableSelect").children("option:selected").val();
+
+        $("#tableContainer").load("/Home/UpdateTable/"+selectedElement);
+
+
+        /*$.ajax({
+            type: "POST",
+            url: "/Home/UpdateTable",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(selectedElement),
+            success: function (result) {
+                if (result.success) {
+                    alert(result.message);
+                }
+                else
+                    alert("Błąd podczas aktualizacji zamówienia! Treść błędu: " + result.message);
+            }
+        })*/
+    };
 </script>
