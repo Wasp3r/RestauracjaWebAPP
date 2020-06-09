@@ -23,6 +23,10 @@ textarea {
     max-width: 280px;
 }
 
+h1 {
+    text-align: center;
+}
+
 table, th, td {
     border: 1px solid #00000075;
 }
@@ -34,6 +38,12 @@ td {
 
 .boldText{
     font-weight: bold;
+}
+
+select {
+    width: 250px;
+    height: 30px;
+    font-size: 16px;
 }
 
 .tableInput {
@@ -60,8 +70,8 @@ td {
     bottom: 0;
 }
 
-.restoreButton{
-    background: #970000;
+.confirmButton{
+    background: #018000;
     color: #e8e8e8;
     border: none;
     position: absolute;

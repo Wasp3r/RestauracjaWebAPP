@@ -1,34 +1,54 @@
 ﻿@model RestauracjaWebAPP.Models.Table
 
 <h2>@Model.Name</h2>
-<table>
-    <tbody>
-        <tr>
-            <td class="boldText">Numer dania</td>
-            <td class="boldText">Nazwa dania</td>
-            <td class="boldText">Zamówione ilość</td>
-            <td class="boldText">Cena za 1 porcję</td>
-            <td class="boldText">Cena za całość</td>
-            <td class="boldText">Usuń</td>
-        </tr>
-        @for (int a = 0; a < Model.Orders.First().Dishes.Count; a++)
-        {
-            var dish = Model.Orders.First().Dishes[a];
-            <tr>
-                <td>@(a + 1)</td>
-                <td>@dish.DishObject.Name</td>
-                <td style="position:relative">
-                    <input id="dish_@a" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateQuantity(this)">
-                </td>
-                <td id="dishPrice_@a">@(dish.DishObject.Price)zł</td>
-                <td id="dishTotalPrice_@a">@(dish.DishObject.Price * dish.Quantity)zł</td>
-                <td style="position: relative">
-                    <button id="removeDish_@a" class="removeButton" onclick="removeDish(this)">Usuń</button>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+@{
+    if (Model.CurrentOrder != null)
+    {
+        <table>
+            <tbody>
+                <tr>
+                    <td class="boldText">Numer dania</td>
+                    <td class="boldText">Nazwa dania</td>
+                    <td class="boldText">Zamówione ilość</td>
+                    <td class="boldText">Cena za 1 porcję</td>
+                    <td class="boldText">Cena za całość</td>
+                    <td class="boldText">Usuń</td>
+                </tr>
+
+                @for (int a = 0; a < Model.CurrentOrder.Dishes.Count; a++)
+                {
+                    var dish = Model.CurrentOrder.Dishes[a];
+                    <tr>
+                        <td>@(a + 1)</td>
+                        <td>@dish.DishObject.Name</td>
+                        <td style="position:relative">
+                            <input id="dish_@a" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateQuantity(this)">
+                        </td>
+                        <td id="dishPrice_@a">@(dish.DishObject.Price)zł</td>
+                        <td id="dishTotalPrice_@a">@(dish.DishObject.Price * dish.Quantity)zł</td>
+                        <td style="position: relative">
+                            <button id="removeDish_@a" class="removeButton" onclick="removeDish(this)">Usuń</button>
+                        </td>
+                    </tr>
+                }
+
+                <tr>
+                    <td colspan="3" style="position:relative">
+                        <button class="removeButton" onclick="removeOrder(this)">Usuń zamówienie</button>
+                    </td>
+                    <td colspan="3" style="position:relative">
+                        <button class="confirmButton">Zapłać</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div>Brak zamówień dla tego stolika</div>
+        <button id="createOrder_@Model.Id" onclick="createOrder()">Utwórz nowe zamówienie</button>
+    }
+}
 
 <button onclick="postUpdate()">TEST</button>
 
@@ -40,7 +60,6 @@
 
         var body = {};
         body.tableId = @Model.Id;
-        body.orderId = @Model.CurrentOrder;
         body.dishId = id;
         body.quantity = quantity;
 
@@ -71,6 +90,48 @@
         var id = sender.id.substring(sender.id.indexOf("_") + 1);
         var dishQuantity = $("#dish_" + id);
         dishQuantity.css("background-color", "#ffffff");
+    }
+
+    function removeOrder() {
+        var body = {};
+        body.tableId = @(Model.Id);
+
+        if (confirm("Czy na pewno chcesz usunąć zamówienie?")) {
+            $.ajax({
+                type: "POST",
+                url: "/Table/RemoveOrder",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: JSON.stringify(body),
+                success: function (result) {
+                    if (result.success) {
+                        location.reload();
+                    }
+                    else
+                        alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+                }
+            })
+        }
+    }
+
+    function createOrder() {
+        var body = {};
+        body.tableId = @(Model.Id);
+
+        $.ajax({
+            type: "POST",
+            url: "/Table/CreateOrder",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body),
+            success: function (result) {
+                if (result.success) {
+                    location.reload();
+                }
+                else
+                    alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+            }
+        })
     }
 
 </script>

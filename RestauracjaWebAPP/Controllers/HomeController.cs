@@ -14,7 +14,7 @@ namespace RestauracjaWebAPP.Controllers
         public ActionResult Index()
         {
             Initialize();
-            return View(DataAccess.Instance.GetRoom);
+            return View(GetRoom());
         }
 
         [HttpGet]
@@ -26,12 +26,11 @@ namespace RestauracjaWebAPP.Controllers
 
         [HttpPost]
         [Route("Table/UpdateDish")]
-        public ActionResult updateQuantity()
+        public ActionResult UpdateQuantity()
         {
             var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
             var inputContainer = new
             {
-                orderId = -1,
                 dishId = -1,
                 tableId = -1,
                 quantity = -1
@@ -45,7 +44,6 @@ namespace RestauracjaWebAPP.Controllers
             {
                 UpdateDish(
                     inputContainer.tableId,
-                    inputContainer.orderId,
                     inputContainer.dishId,
                     inputContainer.quantity);
 
@@ -59,6 +57,51 @@ namespace RestauracjaWebAPP.Controllers
             return Json(new { success = true, message = Math.Round(price * inputContainer.quantity, 2) });
         }
 
+        [HttpPost]
+        [Route("Table/RemoveOrder")]
+        public ActionResult RemoveOrder()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            var inputContainer = new
+            {
+                tableId = -1,
+            };
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                RemoveOrder(inputContainer.tableId);
+            } catch
+            {
+                return Json(new { success = false, message = "Nie udało się usunąć zamówienia!" });
+            }
+
+            return Json(new { success = true, message = "OK" });
+        }
+
+        [HttpPost]
+        [Route("Table/CreateOrder")]
+        public ActionResult CreateNewOrder()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            var inputContainer = new
+            {
+                tableId = -1,
+            };
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                CreateOrder(inputContainer.tableId);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Nie udało się stworzyć zamówienia!" });
+            }
+
+            return Json(new { success = true, message = "OK" });
+        }
+
         #region Session Controller
 
         private void Initialize()
@@ -69,14 +112,10 @@ namespace RestauracjaWebAPP.Controllers
 
             room = new Room();
             room.Tables = new List<Table>();
-            UpdateRoom(room);
-
             GenerateDishes();
+
             for (int a = 0; a < 5; a++)
-            {
-                CreateTable();
-                room.Tables.Last().AddNewOrder();
-            }
+                room.Tables.Add(CreateTable(a));
 
             UpdateRoom(room);
         }
@@ -134,9 +173,9 @@ namespace RestauracjaWebAPP.Controllers
             Session["Dishes"] = dishes;
         }
 
-        private void AddDish(int dishId, int quantity, int tableId, int orderId)
+        private void AddDish(int dishId, int quantity, int tableId)
         {
-            Order order = GetOrder(tableId, orderId);
+            Order order = GetOrder(tableId);
             DishContainer dishFromExisting = order.Dishes.Find(x => x.DishObject.Id == dishId);
 
             if (dishFromExisting == null)
@@ -152,38 +191,37 @@ namespace RestauracjaWebAPP.Controllers
                 order.Dishes.Find(x => x.DishObject.Id == dishId).Quantity = quantity;
 
             Room room = GetRoom();
-            room.Tables[tableId].Orders[orderId] = order;
+            room.Tables[tableId].CurrentOrder = order;
             UpdateRoom(room);
         }
 
-        private void UpdateDish(int tableId, int ordedId, int dishId, int quantity)
+        private void UpdateDish(int tableId, int dishId, int quantity)
         {
-            Order order = GetOrder(tableId, ordedId);
+            Order order = GetOrder(tableId);
 
             if (order.Payed)
                 throw new Exception("Nie można edytować opłaconego zamówienia!");
 
-            AddDish(dishId, quantity, tableId, ordedId);
+            AddDish(dishId, quantity, tableId);
         }
 
         #endregion
 
         #region Order Methods
 
-        private Order GetOrder(int tableId, int ordedId)
+        private Order GetOrder(int tableId)
         {
             Table table = GetTable(tableId);
 
-            if (table.Orders[ordedId] == null)
-                throw new Exception($"Zamówienei o numerze {ordedId} nie istnieje");
+            if (table.CurrentOrder == null)
+                throw new Exception($"Zamówienie nie istnieje");
 
-            return table.Orders[ordedId];
+            return table.CurrentOrder;
         }
 
-        public Order GenerateBlankOrder(int orderId, int tableId)
+        private Order GenerateBlankOrder()
         {
             Order order = new Order();
-
             order.Dishes.Add(new DishContainer()
             {
                 DishObject = GetDish(0),
@@ -191,6 +229,20 @@ namespace RestauracjaWebAPP.Controllers
             });
 
             return order;
+        }
+
+        private void RemoveOrder(int tableId)
+        {
+            Room room = GetRoom();
+            room.Tables[tableId].CurrentOrder = null;
+            UpdateRoom(room);
+        }
+
+        private void CreateOrder(int tableId)
+        {
+            Room room = GetRoom();
+            room.Tables[tableId].CurrentOrder = new Order();
+            UpdateRoom(room);
         }
 
         #endregion
@@ -205,17 +257,16 @@ namespace RestauracjaWebAPP.Controllers
             return room.Tables[id];
         }
 
-        private void CreateTable()
+        private Table CreateTable(int tableId)
         {
-            Room room = GetRoom();
-            room.Tables.Add(new Table()
+            Table table = new Table()
             {
-                Id = room.Tables.Count,
-                Name = $"Stolik {room.Tables.Count}"
-            });
-            room.Tables.Last().Orders.Add(GenerateBlankOrder(0, room.Tables.Count));
+                Id = tableId,
+                Name = $"Stolik {tableId+1}"
+            };
+            table.CurrentOrder = GenerateBlankOrder();
 
-            UpdateRoom(room);
+            return table;
         }
 
         #endregion

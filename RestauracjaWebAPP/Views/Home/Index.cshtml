@@ -24,21 +24,5 @@
         var selectedElement = $("#tableSelect").children("option:selected").val();
 
         $("#tableContainer").load("/Home/UpdateTable/"+selectedElement);
-
-
-        /*$.ajax({
-            type: "POST",
-            url: "/Home/UpdateTable",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: JSON.stringify(selectedElement),
-            success: function (result) {
-                if (result.success) {
-                    alert(result.message);
-                }
-                else
-                    alert("Błąd podczas aktualizacji zamówienia! Treść błędu: " + result.message);
-            }
-        })*/
     };
 </script>

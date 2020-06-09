@@ -8,14 +8,12 @@ namespace RestauracjaWebAPP.Models
     public class Table
     {
         public int Id { get; set; }
-        public int CurrentOrder { get; set; }
-        public List<Order> Orders { get; set; } = new List<Order>();
+        public Order CurrentOrder { get; set; }
         public string Name { get; set; }
 
         public void AddNewOrder()
         {
-            Orders.Add(new Order() { Id = Orders.Count });
-            CurrentOrder = Orders.Last().Id;
+            CurrentOrder = new Order();
         }
     }
 }
