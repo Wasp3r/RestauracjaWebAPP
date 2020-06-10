@@ -10,10 +10,5 @@ namespace RestauracjaWebAPP.Models
         public int Id { get; set; }
         public Order CurrentOrder { get; set; }
         public string Name { get; set; }
-
-        public void AddNewOrder()
-        {
-            CurrentOrder = new Order();
-        }
     }
 }

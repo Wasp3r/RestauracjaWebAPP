@@ -102,6 +102,38 @@ namespace RestauracjaWebAPP.Controllers
             return Json(new { success = true, message = "OK" });
         }
 
+        [HttpGet]
+        [Route("GetDishes")]
+        public ActionResult GetDishes()
+        {
+            List<Dish> dishes = GetAllDishes();
+            return Json(new { success = true, message = dishes }, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [Route("GetDishPrice")]
+        public ActionResult GetDishPrice()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            double price = 0;
+            var inputContainer = new
+            {
+                dishId = -1,
+            };
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                price = GetDish(inputContainer.dishId).Price;
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Błąd pobierania ceny dania" });
+            }
+
+            return Json(new { success = true, message = Math.Round(price, 2) });
+        }
+
         #region Session Controller
 
         private void Initialize()

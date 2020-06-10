@@ -32,6 +32,21 @@
                     </tr>
                 }
 
+            <tr>
+                <td colspan="2">
+                    <select id="dishes">
+                    </select>
+                </td>
+                <td style="position: relative">
+                    <input id="newDishQuantity" class="tableInput" type="number" min="1" value="1">
+                </td>
+                <td id="newDishPrice"></td>
+                <td id="newDishPriceTotal"></td>
+                <td style="position: relative">
+                    <button id="addNewDishButton" class="confirmButton">Dodaj</button>
+                </td>
+            </tr>
+
                 <tr>
                     <td colspan="3" style="position:relative">
                         <button class="removeButton" onclick="removeOrder(this)">Usuń zamówienie</button>
@@ -48,11 +63,15 @@
         <div>Brak zamówień dla tego stolika</div>
         <button id="createOrder_@Model.Id" onclick="createOrder()">Utwórz nowe zamówienie</button>
     }
+
 }
 
-<button onclick="postUpdate()">TEST</button>
-
 <script type="text/javascript">
+
+    window.onload = function() {
+        getDishes();
+    }
+
     function updateQuantity(sender) {
         var id = sender.id.substring(sender.id.indexOf("_")+1);
         var quantity = sender.value;
@@ -127,6 +146,59 @@
             success: function (result) {
                 if (result.success) {
                     location.reload();
+                }
+                else
+                    alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+            }
+        })
+    }
+
+    function getDishes() {
+
+        $.ajax({
+            type: "GET",
+            url: "/GetDishes",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: "",
+            success: function (result) {
+                if (result.success) {
+                    fillDishList(result.message);
+                }
+                else
+                    alert("Błąd podczas pobierania dostępnych dań! Treść błędu: " + result.message);
+            }
+        })
+    }
+
+    function fillDishList(list) {
+
+        for (var a = 0; a < list.length; a++) {
+            var element = { val: a, text: list[a].Name };
+            $("#dishes").append($("<option>").attr('value', element.val).text(element.text));
+        }
+
+        updateDishPrice(0);
+    }
+
+    function updateDishPrice(dishId) {
+        alert(getDishPrice(0));
+        $("#newDishPrice").html(getDishPrice(dishId) + "zł");
+    }
+
+    function getDishPrice(dishId) {
+        var body = {};
+        body.dishId = dishId;
+
+        $.ajax({
+            type: "POST",
+            url: "/GetDishPrice",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body),
+            success: function (result) {
+                if (result.success) {
+                    return result.message;
                 }
                 else
                     alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
