@@ -22,7 +22,7 @@
                         <td>@(a + 1)</td>
                         <td>@dish.DishObject.Name</td>
                         <td style="position:relative">
-                            <input id="dish_@a" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateQuantity(this)">
+                            <input id="dish_@a" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateExistingDish(this)">
                         </td>
                         <td id="dishPrice_@a">@(dish.DishObject.Price)zł</td>
                         <td id="dishTotalPrice_@a">@(dish.DishObject.Price * dish.Quantity)zł</td>
@@ -34,16 +34,16 @@
 
             <tr>
                 <td colspan="2">
-                    <select id="dishes">
+                    <select id="dishes" onchange="updateDishPrice()">
                     </select>
                 </td>
                 <td style="position: relative">
-                    <input id="newDishQuantity" class="tableInput" type="number" min="1" value="1">
+                    <input id="newDishQuantity" class="tableInput" type="number" min="1" value="1" onchange="updateDishPrice()">
                 </td>
                 <td id="newDishPrice"></td>
                 <td id="newDishPriceTotal"></td>
                 <td style="position: relative">
-                    <button id="addNewDishButton" class="confirmButton">Dodaj</button>
+                    <button id="addNewDishButton" class="confirmButton" onclick="addNewDish()">Dodaj</button>
                 </td>
             </tr>
 
@@ -72,9 +72,21 @@
         getDishes();
     }
 
-    function updateQuantity(sender) {
-        var id = sender.id.substring(sender.id.indexOf("_")+1);
+    function updateExistingDish(sender) {
+        var id = sender.id.substring(sender.id.indexOf("_") + 1);
         var quantity = sender.value;
+
+        updateQuantity(id, quantity);
+    }
+
+    function addNewDish() {
+        var id = $("#dishes").children("option:selected").val();
+        var quantity = $("#newDishQuantity").val();
+
+        updateQuantity(id, quantity);
+    }
+
+    function updateQuantity(id, quantity) {
         var totalPrice = 0;
 
         var body = {};
@@ -178,31 +190,28 @@
             $("#dishes").append($("<option>").attr('value', element.val).text(element.text));
         }
 
-        updateDishPrice(0);
+        updateDishPrice();
     }
 
-    function updateDishPrice(dishId) {
-        alert(getDishPrice(0));
-        $("#newDishPrice").html(getDishPrice(dishId) + "zł");
+    async function updateDishPrice() {
+        var selectedId = $("#dishes").children("option:selected").val();
+        const price = await getDishPrice(selectedId);
+        var quantity = $("#newDishQuantity").val();
+        $("#newDishPrice").html(price + "zł");
+        $("#newDishPriceTotal").html(price * quantity + "zł");
+
     }
 
     function getDishPrice(dishId) {
         var body = {};
         body.dishId = dishId;
 
-        $.ajax({
+        return $.ajax({
             type: "POST",
             url: "/GetDishPrice",
             contentType: "application/json; charset=utf-8",
             dataType: "json",
-            data: JSON.stringify(body),
-            success: function (result) {
-                if (result.success) {
-                    return result.message;
-                }
-                else
-                    alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
-            }
+            data: JSON.stringify(body)
         })
     }
 

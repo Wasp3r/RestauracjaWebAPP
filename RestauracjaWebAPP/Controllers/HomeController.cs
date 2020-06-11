@@ -54,7 +54,8 @@ namespace RestauracjaWebAPP.Controllers
             }
 
             double price = GetDishPrice(inputContainer.dishId);
-            return Json(new { success = true, message = Math.Round(price * inputContainer.quantity, 2) });
+            DishContainer dishContainer = GetTableDish(inputContainer.dishId, inputContainer.tableId);
+            return Json(new { success = true, message = Math.Round(price * dishContainer.Quantity, 2) });
         }
 
         [HttpPost]
@@ -131,8 +132,34 @@ namespace RestauracjaWebAPP.Controllers
                 return Json(new { success = false, message = "Błąd pobierania ceny dania" });
             }
 
-            return Json(new { success = true, message = Math.Round(price, 2) });
+            return Json(Math.Round(price, 2));
         }
+
+        [HttpPost]
+        [Route("GetTableDishQuantity")]
+        public ActionResult GetTableDishQuantity()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            double quantity = 0;
+            var inputContainer = new
+            {
+                dishId = -1,
+                tableId = -1
+            };
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                quantity = GetTableDish(inputContainer.dishId, inputContainer.tableId).Quantity;
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Błąd pobierania zamówionej ilości dania" });
+            }
+
+            return Json(quantity);
+        }
+
 
         #region Session Controller
 
@@ -172,6 +199,11 @@ namespace RestauracjaWebAPP.Controllers
         private double GetDishPrice(int dishId)
         {
             return GetDish(dishId).Price;
+        }
+
+        private DishContainer GetTableDish(int dishId, int tableId)
+        {
+            return GetOrder(tableId).Dishes[dishId];
         }
 
         /// <summary>
