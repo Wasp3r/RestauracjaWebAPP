@@ -32,20 +32,19 @@
                     </tr>
                 }
 
-            <tr>
-                <td colspan="2">
-                    <select id="dishes" onchange="updateDishPrice()">
-                    </select>
-                </td>
-                <td style="position: relative">
-                    <input id="newDishQuantity" class="tableInput" type="number" min="1" value="1" onchange="updateDishPrice()">
-                </td>
-                <td id="newDishPrice"></td>
-                <td id="newDishPriceTotal"></td>
-                <td style="position: relative">
-                    <button id="addNewDishButton" class="confirmButton" onclick="addNewDish()">Dodaj</button>
-                </td>
-            </tr>
+                <tr>
+                    <td colspan="2">
+                        <select id="dishes" onchange="updateDishPrice()"/>
+                    </td>
+                    <td style="position: relative">
+                        <input id="newDishQuantity" class="tableInput" type="number" min="1" value="1" onchange="updateDishPrice()">
+                    </td>
+                    <td id="newDishPrice"></td>
+                    <td id="newDishPriceTotal"></td>
+                    <td style="position: relative">
+                        <button id="addNewDishButton" class="confirmButton" onclick="addNewDish()">Dodaj</button>
+                    </td>
+                </tr>
 
                 <tr>
                     <td colspan="3" style="position:relative">
@@ -68,22 +67,20 @@
 
 <script type="text/javascript">
 
-    window.onload = function() {
-        getDishes();
-    }
-
     function updateExistingDish(sender) {
         var id = sender.id.substring(sender.id.indexOf("_") + 1);
         var quantity = sender.value;
-
         updateQuantity(id, quantity);
     }
 
-    function addNewDish() {
+    async function addNewDish() {
         var id = $("#dishes").children("option:selected").val();
         var quantity = $("#newDishQuantity").val();
+        var oryginalDishQuantity = await getDishQuantity(id);
 
-        updateQuantity(id, quantity);
+        alert("Actual: " + quantity + " Total: " + oryginalDishQuantity);
+
+        updateQuantity(id, Number(oryginalDishQuantity) + Number(quantity));
     }
 
     function updateQuantity(id, quantity) {
@@ -104,6 +101,7 @@
                 if (result.success) {
                     totalPrice = result.message;
                     $("#dishTotalPrice_" + id).html(totalPrice + "zł");
+                    $("#dish_" + id).val(quantity);
                 }
                 else
                     alert("Błąd podczas aktualizacji zamówienia! Treść błędu: " + result.message);
@@ -115,12 +113,6 @@
         var id = sender.id.substring(sender.id.indexOf("_") + 1);
         var dishQuantity = $("#dish_" + id);
         dishQuantity.css("background-color", "#cd5c5c");
-    }
-
-    function restoreDish(sender) {
-        var id = sender.id.substring(sender.id.indexOf("_") + 1);
-        var dishQuantity = $("#dish_" + id);
-        dishQuantity.css("background-color", "#ffffff");
     }
 
     function removeOrder() {
@@ -166,7 +158,6 @@
     }
 
     function getDishes() {
-
         $.ajax({
             type: "GET",
             url: "/GetDishes",
@@ -184,7 +175,6 @@
     }
 
     function fillDishList(list) {
-
         for (var a = 0; a < list.length; a++) {
             var element = { val: a, text: list[a].Name };
             $("#dishes").append($("<option>").attr('value', element.val).text(element.text));
@@ -197,9 +187,11 @@
         var selectedId = $("#dishes").children("option:selected").val();
         const price = await getDishPrice(selectedId);
         var quantity = $("#newDishQuantity").val();
+        if (quantity == null)
+            quantity = 0;
+
         $("#newDishPrice").html(price + "zł");
         $("#newDishPriceTotal").html(price * quantity + "zł");
-
     }
 
     function getDishPrice(dishId) {
@@ -209,6 +201,20 @@
         return $.ajax({
             type: "POST",
             url: "/GetDishPrice",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body)
+        })
+    }
+
+    function getDishQuantity(dishId) {
+        var body = {};
+        body.dishId = dishId;
+        body.tableId = @(Model.Id);
+
+        return $.ajax({
+            type: "POST",
+            url: "/GetTableDishQuantity",
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             data: JSON.stringify(body)

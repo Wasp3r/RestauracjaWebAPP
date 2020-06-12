@@ -36,12 +36,12 @@ namespace RestauracjaWebAPP.Controllers
                 quantity = -1
             };
 
-            inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
-            if (inputContainer.tableId.Equals(-1) || inputContainer.quantity.Equals(-1) || inputContainer.dishId.Equals(-1))
-                return Json(new { success = false, message = "Error parsing input body" });
-
             try
             {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                if (inputContainer.tableId.Equals(-1) || inputContainer.quantity.Equals(-1) || inputContainer.dishId.Equals(-1))
+                    return Json(new { success = false, message = "Error parsing input body" });
+
                 UpdateDish(
                     inputContainer.tableId,
                     inputContainer.dishId,

@@ -18,11 +18,16 @@
 </div>
 
 
-<script>
+<script type="text/javascript">
 
     function loadTable () {
         var selectedElement = $("#tableSelect").children("option:selected").val();
-
-        $("#tableContainer").load("/Home/UpdateTable/"+selectedElement);
+        $("#tableContainer").load("/Home/UpdateTable/" + selectedElement);
+        getDishes();
     };
+
+    window.onload = function () {
+        getDishes();
+    };
+
 </script>
