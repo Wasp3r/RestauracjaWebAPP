@@ -315,10 +315,19 @@ namespace RestauracjaWebAPP.Controllers
         private Table GetTable(int id)
         {
             Room room = GetRoom();
-            if (room.Tables.Find(x => x.Id.Equals(id)) == null)
-                throw new Exception($"Stolik o numerze {id} nie istnieje");
 
-            return room.Tables[id];
+            try
+            {
+                if (room.Tables.Find(x => x.Id.Equals(id)) == null)
+                    throw new Exception($"Stolik o numerze {id} nie istnieje");
+
+                return room.Tables[id];
+            } catch (Exception ex)
+            {
+                throw new Exception("Błąd poczas pobierania stolika! Treść błędu: " + ex.Message);
+            }
+
+            
         }
 
         private Table CreateTable(int tableId)

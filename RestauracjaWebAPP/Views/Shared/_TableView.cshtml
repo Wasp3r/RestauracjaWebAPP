@@ -175,11 +175,14 @@
     }
 
     function fillDishList(list) {
+        $("#dishes").children().remove();
         for (var a = 0; a < list.length; a++) {
             var element = { val: a, text: list[a].Name };
-            $("#dishes").append($("<option>").attr('value', element.val).text(element.text));
+            $("#dishes").append(new Option(element.text, element.val));
+            if (testDishes() == 0)
+                alert(element.text + " " + testDishes());
         }
-
+        testDishes();
         updateDishPrice();
     }
 
@@ -219,6 +222,10 @@
             dataType: "json",
             data: JSON.stringify(body)
         })
+    }
+
+    function testDishes() {
+        return dishes = $("#dishes").children().length;
     }
 
 </script>

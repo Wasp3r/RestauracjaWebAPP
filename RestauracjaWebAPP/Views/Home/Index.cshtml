@@ -20,14 +20,19 @@
 
 <script type="text/javascript">
 
-    function loadTable () {
+    async function loadTable () {
         var selectedElement = $("#tableSelect").children("option:selected").val();
         $("#tableContainer").load("/Home/UpdateTable/" + selectedElement);
+        await sleep(20);
         getDishes();
     };
 
     window.onload = function () {
         getDishes();
     };
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
 </script>
