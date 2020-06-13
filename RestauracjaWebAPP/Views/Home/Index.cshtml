@@ -6,33 +6,51 @@
 
 <h1>Obsługa zamówień</h1>
 <h2>Wybierz stolik</h2>
-<select id="tableSelect" onchange="loadTable()" >
+<select id="tableSelect" onchange="loadTable()">
     @foreach (var table in Model.Tables)
     {
-        <option value="@table.Id">@table.Name</option>
+        if (ViewBag.Table == table.Id)
+        {
+            <option value="@table.Id" selected="selected">@table.Name</option>
+        }
+        else
+        {
+            <option value="@table.Id">@table.Name</option>
+        }
+
     }
 </select> 
 
 <div id="tableContainer">
-    @{Html.RenderPartial("_TableView", Model.Tables[0]);}
+    @{ 
+        int id = ViewBag.Table;
+        Html.RenderPartial("_TableView", Model.Tables[id]);
+    }
 </div>
 
 
 <script type="text/javascript">
 
-    async function loadTable () {
+    function loadTable () {
         var selectedElement = $("#tableSelect").children("option:selected").val();
+        $("#tableContainer").html("");
         $("#tableContainer").load("/Home/UpdateTable/" + selectedElement);
-        await sleep(20);
-        getDishes();
+        window.requestAnimationFrame(ready);
+    };
+
+    var ready = function () {
+        var dishes = $("#dishes");
+        if (dishes) {
+            getDishes();
+            if (dishes.children().length != 0)
+                return;
+        };
+
+        window.requestAnimationFrame(ready);
     };
 
     window.onload = function () {
         getDishes();
     };
-
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
 
 </script>

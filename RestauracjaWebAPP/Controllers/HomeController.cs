@@ -11,10 +11,15 @@ namespace RestauracjaWebAPP.Controllers
 {
     public class HomeController : Controller
     {
-        public ActionResult Index()
+        [Route("{tableId?}")]
+        public ActionResult Index(int tableId = 0)
         {
             Initialize();
-            return View(GetRoom());
+            Room room = GetRoom();
+            if (room.Tables.Find(x=> x.Id == tableId) == null)
+                tableId = 0;
+            ViewBag.Table = tableId;
+            return View(room);
         }
 
         [HttpGet]
@@ -77,6 +82,32 @@ namespace RestauracjaWebAPP.Controllers
                 return Json(new { success = false, message = "Nie udało się usunąć zamówienia!" });
             }
 
+            return Json(new { success = true, message = "OK" });
+        }
+
+        [HttpPost]
+        [Route("Table/RemoveDish")]
+        public ActionResult RemoveDish()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            var inputContainer = new
+            {
+                tableId = -1,
+                dishId = -1
+            };
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                RemoveDish(inputContainer.tableId, inputContainer.dishId);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Nie udało się usunąć zamówienia!" });
+            }
+
+            if (GetOrder(inputContainer.tableId).Dishes.Count == 0)
+                RemoveOrder(inputContainer.tableId);
             return Json(new { success = true, message = "OK" });
         }
 
@@ -203,7 +234,12 @@ namespace RestauracjaWebAPP.Controllers
 
         private DishContainer GetTableDish(int dishId, int tableId)
         {
-            return GetOrder(tableId).Dishes[dishId];
+            Order order = GetOrder(tableId);
+            DishContainer dishContainer = order.Dishes.Find(x => x.DishObject.Id == dishId);
+            if (dishContainer != null)
+                return dishContainer;
+            else
+                return new DishContainer() { DishObject = GetDish(dishId), Quantity = 0 };
         }
 
         /// <summary>
@@ -267,6 +303,13 @@ namespace RestauracjaWebAPP.Controllers
                 throw new Exception("Nie można edytować opłaconego zamówienia!");
 
             AddDish(dishId, quantity, tableId);
+        }
+
+        private void RemoveDish(int tableId, int dishId)
+        {
+            Room room = GetRoom();
+            room.Tables[tableId].CurrentOrder.Dishes.Remove(GetTableDish(dishId, tableId));
+            UpdateRoom(room);
         }
 
         #endregion

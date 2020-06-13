@@ -18,16 +18,17 @@
                 @for (int a = 0; a < Model.CurrentOrder.Dishes.Count; a++)
                 {
                     var dish = Model.CurrentOrder.Dishes[a];
+                    var dishId = dish.DishObject.Id;
                     <tr>
                         <td>@(a + 1)</td>
                         <td>@dish.DishObject.Name</td>
                         <td style="position:relative">
-                            <input id="dish_@a" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateExistingDish(this)">
+                            <input id="dish_@dishId" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateExistingDish(this)">
                         </td>
-                        <td id="dishPrice_@a">@(dish.DishObject.Price)zł</td>
-                        <td id="dishTotalPrice_@a">@(dish.DishObject.Price * dish.Quantity)zł</td>
+                        <td id="dishPrice_@dishId">@(dish.DishObject.Price)zł</td>
+                        <td id="dishTotalPrice_@dishId">@(dish.DishObject.Price * dish.Quantity)zł</td>
                         <td style="position: relative">
-                            <button id="removeDish_@a" class="removeButton" onclick="removeDish(this)">Usuń</button>
+                            <button id="removeDish_@dishId" class="removeButton" onclick="removeDish(this)">Usuń</button>
                         </td>
                     </tr>
                 }
@@ -78,9 +79,8 @@
         var quantity = $("#newDishQuantity").val();
         var oryginalDishQuantity = await getDishQuantity(id);
 
-        alert("Actual: " + quantity + " Total: " + oryginalDishQuantity);
-
         updateQuantity(id, Number(oryginalDishQuantity) + Number(quantity));
+        window.location.href = "/"+@Model.Id;
     }
 
     function updateQuantity(id, quantity) {
@@ -111,8 +111,25 @@
 
     function removeDish(sender) {
         var id = sender.id.substring(sender.id.indexOf("_") + 1);
-        var dishQuantity = $("#dish_" + id);
-        dishQuantity.css("background-color", "#cd5c5c");
+
+        var body = {};
+        body.tableId = @Model.Id;
+        body.dishId = id;
+
+        $.ajax({
+            type: "POST",
+            url: "/Table/RemoveDish",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body),
+            success: function (result) {
+                if (result.success) {
+                    window.location.href = "/"+@Model.Id;
+                }
+                else
+                    alert("Błąd podczas usuwania dania! Treść błędu: " + result.message);
+            }
+        })
     }
 
     function removeOrder() {
@@ -128,7 +145,7 @@
                 data: JSON.stringify(body),
                 success: function (result) {
                     if (result.success) {
-                        location.reload();
+                        window.location.href = "/"+@Model.Id;
                     }
                     else
                         alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
@@ -179,10 +196,7 @@
         for (var a = 0; a < list.length; a++) {
             var element = { val: a, text: list[a].Name };
             $("#dishes").append(new Option(element.text, element.val));
-            if (testDishes() == 0)
-                alert(element.text + " " + testDishes());
         }
-        testDishes();
         updateDishPrice();
     }
 
