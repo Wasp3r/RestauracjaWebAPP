@@ -4,7 +4,7 @@
 @{
     if (Model.CurrentOrder != null)
     {
-        <table>
+        <table id="orderTable">
             <tbody>
                 <tr>
                     <td class="boldText">Numer dania</td>
@@ -33,7 +33,7 @@
                     </tr>
                 }
 
-                <tr>
+                <tr id="controlsRow">
                     <td colspan="2">
                         <select id="dishes" onchange="updateDishPrice()"/>
                     </td>
@@ -52,7 +52,7 @@
                         <button class="removeButton" onclick="removeOrder(this)">Usuń zamówienie</button>
                     </td>
                     <td colspan="3" style="position:relative">
-                        <button class="confirmButton">Zapłać</button>
+                        <button class="confirmButton" onclick="showSummary()">Zapłać</button>
                     </td>
                 </tr>
             </tbody>
@@ -236,6 +236,35 @@
             dataType: "json",
             data: JSON.stringify(body)
         })
+    }
+
+    function showSummary() {
+
+        var tip = 0;
+        var tipCellList = new Array(6);
+        tipCellList[0] = $("<td/>", { html: @(Model.CurrentOrder.Dishes.Count+1) });
+        tipCellList[1] = $("<td/>", { html: "Napiwek 5%" });
+        tipCellList[2] = $("<td/>", { html: "-" });
+        tipCellList[3] = $("<td/>", { html: "-" });
+        tipCellList[4] = $("<td/>", { html: tip + "zł" });
+        tipCellList[5] = $("<td/>", { html: "-" });
+
+        $("button").prop("disabled", true);
+        $("input").prop("disabled", true);
+        $("#dishes").prop("disabled", true);
+        $("button").attr("class", "disabledButton");
+
+        $("<tr/>", { id: "tipRow" }).insertBefore($("#controlsRow"));
+        for (var a = 0; a < 6; a++)
+            $("#tipRow").append(tipCellList[a]);
+
+        /// TODO
+        /// Add confirm and cancel button 
+    }
+
+    function hideSummary() {
+        /// TODO
+        /// Add cancellation of disabling everything
     }
 
     function testDishes() {

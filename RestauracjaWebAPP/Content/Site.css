@@ -81,3 +81,15 @@ select {
     right: 0;
     bottom: 0;
 }
+
+.disabledButton {
+    background: #808080;
+    color: #242424;
+    border: none;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
