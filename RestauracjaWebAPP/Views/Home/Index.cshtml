@@ -34,7 +34,7 @@
     function loadTable () {
         var selectedElement = $("#tableSelect").children("option:selected").val();
         $("#tableContainer").html("");
-        $("#tableContainer").load("/Home/UpdateTable/" + selectedElement);
+        $("#tableContainer").load("/Home/GetTable/" + selectedElement);
         window.requestAnimationFrame(ready);
     };
 

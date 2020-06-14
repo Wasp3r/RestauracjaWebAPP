@@ -9,7 +9,7 @@ namespace RestauracjaWebAPP.Models
     {
         public List<DishContainer> Dishes { get; set; } = new List<DishContainer>();
 
-        public bool Payed { get; set; }
+        public bool Closed { get; set; } = true;
 
         public double GetTip(double tipPercentage)
         {

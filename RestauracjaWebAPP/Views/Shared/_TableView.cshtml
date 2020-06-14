@@ -2,7 +2,7 @@
 
 <h2>@Model.Name</h2>
 @{
-    if (Model.CurrentOrder != null)
+    if (Model.CurrentOrder.Dishes.Count > 0 || !Model.CurrentOrder.Closed)
     {
         <table id="orderTable">
             <tbody>
@@ -23,7 +23,7 @@
                         <td>@(a + 1)</td>
                         <td>@dish.DishObject.Name</td>
                         <td style="position:relative">
-                            <input id="dish_@dishId" class="tableInput" type="number" min="0" value="@dish.Quantity" onchange="updateExistingDish(this)">
+                            <input id="dish_@dishId" class="tableInput" type="number" min="1" value="@dish.Quantity" onchange="updateExistingDish(this)">
                         </td>
                         <td id="dishPrice_@dishId">@(dish.DishObject.Price)zł</td>
                         <td id="dishTotalPrice_@dishId">@(dish.DishObject.Price * dish.Quantity)zł</td>
@@ -68,23 +68,153 @@
 
 <script type="text/javascript">
 
-    function updateExistingDish(sender) {
-        var id = sender.id.substring(sender.id.indexOf("_") + 1);
-        var quantity = sender.value;
-        updateQuantity(id, quantity);
+    async function showSummary() {
+
+        if (@Model.CurrentOrder.Dishes.Count < 1)
+            return;
+
+        var tip = await getTip();
+        var sum = await getSum();
+
+        var fields = [@(Model.CurrentOrder.Dishes.Count+1), "Napiwek 5%", "-", "-", tip + "zł", "-"];
+        var tipCellList = Array(fields);
+        for (var a = 0; a < fields.length; a++)
+            tipCellList[a] = $("<td/>", { html: fields[a] });
+
+        $("<tr/>", { id: "tipRow" }).insertBefore($("#controlsRow"));
+        for (var a = 0; a < 6; a++)
+            $("#tipRow").append(tipCellList[a]);
+
+        $("<tr/>", { id: "summaryRow" }).insertAfter($("#tipRow"));
+        $("#summaryRow").append($("<td/>", { html: "Podsumowanie: ", colspan: 4, class: "rightBoldRow" }));
+        $("#summaryRow").append($("<td/>", { html: sum + "zł", colspan: 2, class: "leftBoldRow"}));
+
+
+        $("button").attr("disabled", true);
+        $("input").attr("disabled", true);
+        $("#dishes").attr("disabled", true);
+        $("#orderTable button").attr("class", "disabledButton");
+        // Activate and change back remove order button. Now it's function is to cancel order payment
+        $("#removeOrderButton").attr("onclick", "hideSummary()");
+        $("#removeOrderButton").attr("class", "removeButton");
+        $("#removeOrderButton").attr("disabled", false);
+        $("#removeOrderButton").html("Anuluj");
+        // Activate and change back confirm order button. Now it's function is to close order
+        $("#confirmOrderButton").attr("onclick", "closeOrder()");
+        $("#confirmOrderButton").attr("class", "confirmButton");
+        $("#confirmOrderButton").attr("disabled", false);
+        $("#confirmOrderButton").html("Potwierdź płatność");
+        // Hide control row
+        $("#controlsRow").hide();
+    }
+
+    function getTip() {
+        return $.ajax({
+            type: "GET",
+            url: "Table/GetTip/"+@(Model.Id),
+            contentType: "application/json; charset=utf-8",
+        });
+    }
+
+    function getDishPrice(dishId) {
+        return $.ajax({
+            type: "GET",
+            url: "/GetDishPrice/"+dishId,
+            contentType: "application/json; charset=utf-8",
+        })
+    }
+
+    function getDishQuantity(dishId) {
+        var body = {};
+        body.dishId = dishId;
+        body.tableId = @(Model.Id);
+
+        return $.ajax({
+            type: "POST",
+            url: "/GetTableDishQuantity",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body)
+        });
+    }
+
+    function getDishes() {
+        if ($("#orderTable").children().length == 0)
+            return;
+
+        $.ajax({
+            type: "GET",
+            url: "/GetDishes",
+            contentType: "application/json; charset=utf-8",
+            success: function (result) {
+                if (result.success) {
+                    fillDishList(result.message);
+                }
+                else
+                    alert("Błąd podczas pobierania dostępnych dań! Treść błędu: " + result.message);
+            }
+        })
+    }
+
+    function getSum() {
+        return $.ajax({
+            type: "GET",
+            url: "Table/GetDishPrice/"+@Model.Id,
+            contentType: "application/json; charset=utf-8"
+        })
+    }
+
+    function createRow(fields) {
+        var rowCellsList = new Array(fields.length);
+        for (var a = 0; a < fields.length; a++)
+            rowCellsList[a] = $("<td/>", { html: fields[a] });
+
+        return rowCellsList;
+    }
+
+    function createOrder() {
+        var body = {};
+        body.tableId = @(Model.Id);
+
+        $.ajax({
+            type: "POST",
+            url: "/Table/CreateOrder",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body),
+            success: function (result) {
+                if (result.success) {
+                    window.location.href = "/"+@Model.Id;
+                }
+                else
+                    alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+            }
+        })
     }
 
     async function addNewDish() {
         var id = $("#dishes").children("option:selected").val();
         var quantity = $("#newDishQuantity").val();
-        var oryginalDishQuantity = await getDishQuantity(id);
 
+        var oryginalDishQuantity = await getDishQuantity(id);
         updateQuantity(id, Number(oryginalDishQuantity) + Number(quantity));
         window.location.href = "/"+@Model.Id;
     }
 
+    function updateExistingDish(sender) {
+        var id = sender.id.substring(sender.id.indexOf("_") + 1);
+        var quantity = sender.value;
+        if (quantity < 1) {
+            sender.value = 1;
+        }
+
+        updateQuantity(id, quantity);
+    }
+
     function updateQuantity(id, quantity) {
         var totalPrice = 0;
+        if (quantity < 1)
+            return;
 
         var body = {};
         body.tableId = @Model.Id;
@@ -107,6 +237,77 @@
                     alert("Błąd podczas aktualizacji zamówienia! Treść błędu: " + result.message);
             }
         })
+    }
+
+    async function updateDishPrice() {
+        var selectedId = $("#dishes").children("option:selected").val();
+        const price = await getDishPrice(selectedId);
+        var quantity = $("#newDishQuantity").val();
+
+        if (quantity == null)
+            quantity = 1;
+
+        if (quantity < 1) {
+            $("#newDishQuantity").val(1);
+            return;
+        }
+
+        $("#newDishPrice").html(price + "zł");
+        $("#newDishPriceTotal").html(price * quantity + "zł");
+    }
+
+    function fillDishList(list) {
+
+        $("#dishes").children().remove();
+        for (var a = 0; a < list.length; a++) {
+            var element = { val: a, text: list[a].Name };
+            $("#dishes").append(new Option(element.text, element.val));
+        }
+        updateDishPrice();
+    }
+
+    function closeOrder() {
+        var body = {};
+        body.tableId = @(Model.Id);
+
+        if (confirm("Czy na pewno chcesz zamknąć zamówienie?")) {
+            $.ajax({
+                type: "POST",
+                url: "/Table/CloseOrder",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: JSON.stringify(body),
+                success: function (result) {
+                    if (result.success) {
+                        window.location.href = "/"+@Model.Id;
+                    }
+                    else
+                        alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+                }
+            })
+        }
+    }
+
+    function hideSummary() {
+        $("button").attr("disabled", false);
+        $("input").attr("disabled", false);
+        $("#dishes").attr("disabled", false);
+        $("#orderTable button").attr("class", "removeButton");
+        $("#addNewDishButton").attr("class", "confirmButton");
+
+        $("#tipRow").remove();
+        $("#summaryRow").remove();
+
+        // Change ramove order button. Now it's function is to remove order order
+        $("#removeOrderButton").attr("onclick", "removeOrder()");
+        $("#removeOrderButton").attr("class", "removeButton");
+        $("#removeOrderButton").html("Usuń zamówienie");
+        // Change confirm order button. Now it's function is initiate payment
+        $("#confirmOrderButton").attr("onclick", "showSummary()");
+        $("#confirmOrderButton").attr("class", "confirmButton");
+        $("#confirmOrderButton").html("Zapłać");
+        // Show control row again
+        $("#controlsRow").show();
     }
 
     function removeDish(sender) {
@@ -143,206 +344,11 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 data: JSON.stringify(body),
-                success: function (result) {
-                    if (result.success) {
-                        window.location.href = "/"+@Model.Id;
-                    }
-                    else
-                        alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+                success: function () {
+                    window.location.href = "/" +@Model.Id;
                 }
-            })
+            });
         }
-    }
-
-    function createOrder() {
-        var body = {};
-        body.tableId = @(Model.Id);
-
-        $.ajax({
-            type: "POST",
-            url: "/Table/CreateOrder",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: JSON.stringify(body),
-            success: function (result) {
-                if (result.success) {
-                    location.reload();
-                }
-                else
-                    alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
-            }
-        })
-    }
-
-    function getDishes() {
-        $.ajax({
-            type: "GET",
-            url: "/GetDishes",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: "",
-            success: function (result) {
-                if (result.success) {
-                    fillDishList(result.message);
-                }
-                else
-                    alert("Błąd podczas pobierania dostępnych dań! Treść błędu: " + result.message);
-            }
-        })
-    }
-
-    function fillDishList(list) {
-        $("#dishes").children().remove();
-        for (var a = 0; a < list.length; a++) {
-            var element = { val: a, text: list[a].Name };
-            $("#dishes").append(new Option(element.text, element.val));
-        }
-        updateDishPrice();
-    }
-
-    async function updateDishPrice() {
-        var selectedId = $("#dishes").children("option:selected").val();
-        const price = await getDishPrice(selectedId);
-        var quantity = $("#newDishQuantity").val();
-        if (quantity == null)
-            quantity = 0;
-
-        $("#newDishPrice").html(price + "zł");
-        $("#newDishPriceTotal").html(price * quantity + "zł");
-    }
-
-    function getDishPrice(dishId) {
-        var body = {};
-        body.dishId = dishId;
-
-        return $.ajax({
-            type: "POST",
-            url: "/GetDishPrice",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: JSON.stringify(body)
-        })
-    }
-
-    function getDishQuantity(dishId) {
-        var body = {};
-        body.dishId = dishId;
-        body.tableId = @(Model.Id);
-
-        return $.ajax({
-            type: "POST",
-            url: "/GetTableDishQuantity",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: JSON.stringify(body)
-        });
-    }
-
-    async function showSummary() {
-        var tip = await getTip();
-        var tipNumer = @(Model.CurrentOrder.Dishes.Count+1);
-
-        var fields = [tipNumer, "Napiwek 5%", "-", "-", tip + "zł", "-"];
-        var tipCellList = Array(fields);
-        for (var a = 0; a < fields.length; a++)
-            tipCellList[a] = $("<td/>", { html: fields[a] });
-
-        $("<tr/>", { id: "tipRow" }).insertBefore($("#controlsRow"));
-        for (var a = 0; a < 6; a++)
-            $("#tipRow").append(tipCellList[a]);
-        /// TODO
-        /// Add confirm and cancel button
-
-        $("<tr/>", { id: "summaryRow" }).insertAfter($("#tipRow"));
-        $("#summaryRow").append($("<td/>", { html: "Podsumowanie: ", colspan: 4, class: "rightBoldRow" }));
-        $("#summaryRow").append($("<td/>", { html: @(Model.CurrentOrder.GetSum()) + "zł", colspan: 2, class: "leftBoldRow"}));
-
-
-        $("button").attr("disabled", true);
-        $("input").attr("disabled", true);
-        $("#dishes").attr("disabled", true);
-        $("#orderTable button").attr("class", "disabledButton");
-        // Activate and change back remove order button. Now it's function is to cancel order payment
-        $("#removeOrderButton").attr("onclick", "hideSummary()");
-        $("#removeOrderButton").attr("class", "removeButton");
-        $("#removeOrderButton").attr("disabled", false);
-        $("#removeOrderButton").html("Anuluj");
-        // Activate and change back confirm order button. Now it's function is to close order
-        $("#confirmOrderButton").attr("onclick", "closeOrder()");
-        $("#confirmOrderButton").attr("class", "confirmButton");
-        $("#confirmOrderButton").attr("disabled", false);
-        $("#confirmOrderButton").html("Potwierdź płatność");
-        // Hide control row
-        $("#controlsRow").hide();
-    }
-
-    function hideSummary() {
-        $("button").attr("disabled", false);
-        $("input").attr("disabled", false);
-        $("#dishes").attr("disabled", false);
-        $("#orderTable button").attr("class", "removeButton");
-        $("#addNewDishButton").attr("class", "confirmButton");
-
-        $("#tipRow").remove();
-        $("#summaryRow").remove();
-
-        // Change ramove order button. Now it's function is to remove order order
-        $("#removeOrderButton").attr("onclick", "removeOrder()");
-        $("#removeOrderButton").attr("class", "removeButton");
-        $("#removeOrderButton").html("Usuń zamówienie");
-        // Change confirm order button. Now it's function is initiate payment
-        $("#confirmOrderButton").attr("onclick", "showSummary()");
-        $("#confirmOrderButton").attr("class", "confirmButton");
-        $("#confirmOrderButton").html("Zapłać");
-        // Show control row again
-        $("#controlsRow").show();
-    }
-
-    function closeOrder() {
-        var body = {};
-        body.tableId = @(Model.Id);
-
-        if (confirm("Czy na pewno chcesz zamknąć zamówienie?")) {
-            $.ajax({
-                type: "POST",
-                url: "/Table/CloseOrder",
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                data: JSON.stringify(body),
-                success: function (result) {
-                    if (result.success) {
-                        window.location.href = "/"+@Model.Id;
-                    }
-                    else
-                        alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
-                }
-            })
-        }
-    }
-
-    function createRow(fields) {
-        var rowCellsList = new Array(fields.length);
-        for (var a = 0; a < fields.length; a++)
-            rowCellsList[a] = $("<td/>", { html: fields[a] });
-
-        return rowCellsList;
-    }
-
-    function getTip() {
-        var body = {};
-        body.tableId = @(Model.Id);
-
-        return $.ajax({
-            type: "POST",
-            url: "Table/GetTip",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: JSON.stringify(body)
-        });
-    }
-
-    function testDishes() {
-        return dishes = $("#dishes").children().length;
     }
 
 </script>
