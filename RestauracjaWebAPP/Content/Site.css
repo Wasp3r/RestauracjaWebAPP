@@ -36,6 +36,18 @@ td {
     text-align: center;
 }
 
+.leftBoldRow {
+    padding: 10px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.rightBoldRow {
+    padding: 10px;
+    font-weight: bold;
+    text-align: right;
+}
+
 .boldText{
     font-weight: bold;
 }

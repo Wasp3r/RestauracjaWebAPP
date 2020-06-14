@@ -12,7 +12,7 @@
                     <td class="boldText">Zamówione ilość</td>
                     <td class="boldText">Cena za 1 porcję</td>
                     <td class="boldText">Cena za całość</td>
-                    <td class="boldText">Usuń</td>
+                    <td class="boldText" id="removeColumn">Usuń</td>
                 </tr>
 
                 @for (int a = 0; a < Model.CurrentOrder.Dishes.Count; a++)
@@ -27,7 +27,7 @@
                         </td>
                         <td id="dishPrice_@dishId">@(dish.DishObject.Price)zł</td>
                         <td id="dishTotalPrice_@dishId">@(dish.DishObject.Price * dish.Quantity)zł</td>
-                        <td style="position: relative">
+                        <td style="position: relative" id="removeColumn">
                             <button id="removeDish_@dishId" class="removeButton" onclick="removeDish(this)">Usuń</button>
                         </td>
                     </tr>
@@ -47,12 +47,12 @@
                     </td>
                 </tr>
 
-                <tr>
+                <tr style="height: 30px">
                     <td colspan="3" style="position:relative">
-                        <button class="removeButton" onclick="removeOrder(this)">Usuń zamówienie</button>
+                        <button id="removeOrderButton" class="removeButton" onclick="removeOrder(this)">Usuń zamówienie</button>
                     </td>
                     <td colspan="3" style="position:relative">
-                        <button class="confirmButton" onclick="showSummary()">Zapłać</button>
+                        <button id="confirmOrderButton" class="confirmButton" onclick="showSummary()">Zapłać</button>
                     </td>
                 </tr>
             </tbody>
@@ -235,36 +235,110 @@
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             data: JSON.stringify(body)
-        })
+        });
     }
 
-    function showSummary() {
+    async function showSummary() {
+        var tip = await getTip();
+        var tipNumer = @(Model.CurrentOrder.Dishes.Count+1);
 
-        var tip = 0;
-        var tipCellList = new Array(6);
-        tipCellList[0] = $("<td/>", { html: @(Model.CurrentOrder.Dishes.Count+1) });
-        tipCellList[1] = $("<td/>", { html: "Napiwek 5%" });
-        tipCellList[2] = $("<td/>", { html: "-" });
-        tipCellList[3] = $("<td/>", { html: "-" });
-        tipCellList[4] = $("<td/>", { html: tip + "zł" });
-        tipCellList[5] = $("<td/>", { html: "-" });
-
-        $("button").prop("disabled", true);
-        $("input").prop("disabled", true);
-        $("#dishes").prop("disabled", true);
-        $("button").attr("class", "disabledButton");
+        var fields = [tipNumer, "Napiwek 5%", "-", "-", tip + "zł", "-"];
+        var tipCellList = Array(fields);
+        for (var a = 0; a < fields.length; a++)
+            tipCellList[a] = $("<td/>", { html: fields[a] });
 
         $("<tr/>", { id: "tipRow" }).insertBefore($("#controlsRow"));
         for (var a = 0; a < 6; a++)
             $("#tipRow").append(tipCellList[a]);
-
         /// TODO
-        /// Add confirm and cancel button 
+        /// Add confirm and cancel button
+
+        $("<tr/>", { id: "summaryRow" }).insertAfter($("#tipRow"));
+        $("#summaryRow").append($("<td/>", { html: "Podsumowanie: ", colspan: 4, class: "rightBoldRow" }));
+        $("#summaryRow").append($("<td/>", { html: @(Model.CurrentOrder.GetSum()) + "zł", colspan: 2, class: "leftBoldRow"}));
+
+
+        $("button").attr("disabled", true);
+        $("input").attr("disabled", true);
+        $("#dishes").attr("disabled", true);
+        $("#orderTable button").attr("class", "disabledButton");
+        // Activate and change back remove order button. Now it's function is to cancel order payment
+        $("#removeOrderButton").attr("onclick", "hideSummary()");
+        $("#removeOrderButton").attr("class", "removeButton");
+        $("#removeOrderButton").attr("disabled", false);
+        $("#removeOrderButton").html("Anuluj");
+        // Activate and change back confirm order button. Now it's function is to close order
+        $("#confirmOrderButton").attr("onclick", "closeOrder()");
+        $("#confirmOrderButton").attr("class", "confirmButton");
+        $("#confirmOrderButton").attr("disabled", false);
+        $("#confirmOrderButton").html("Potwierdź płatność");
+        // Hide control row
+        $("#controlsRow").hide();
     }
 
     function hideSummary() {
-        /// TODO
-        /// Add cancellation of disabling everything
+        $("button").attr("disabled", false);
+        $("input").attr("disabled", false);
+        $("#dishes").attr("disabled", false);
+        $("#orderTable button").attr("class", "removeButton");
+        $("#addNewDishButton").attr("class", "confirmButton");
+
+        $("#tipRow").remove();
+        $("#summaryRow").remove();
+
+        // Change ramove order button. Now it's function is to remove order order
+        $("#removeOrderButton").attr("onclick", "removeOrder()");
+        $("#removeOrderButton").attr("class", "removeButton");
+        $("#removeOrderButton").html("Usuń zamówienie");
+        // Change confirm order button. Now it's function is initiate payment
+        $("#confirmOrderButton").attr("onclick", "showSummary()");
+        $("#confirmOrderButton").attr("class", "confirmButton");
+        $("#confirmOrderButton").html("Zapłać");
+        // Show control row again
+        $("#controlsRow").show();
+    }
+
+    function closeOrder() {
+        var body = {};
+        body.tableId = @(Model.Id);
+
+        if (confirm("Czy na pewno chcesz zamknąć zamówienie?")) {
+            $.ajax({
+                type: "POST",
+                url: "/Table/CloseOrder",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: JSON.stringify(body),
+                success: function (result) {
+                    if (result.success) {
+                        window.location.href = "/"+@Model.Id;
+                    }
+                    else
+                        alert("Błąd podczas usuwania zamówienia! Treść błędu: " + result.message);
+                }
+            })
+        }
+    }
+
+    function createRow(fields) {
+        var rowCellsList = new Array(fields.length);
+        for (var a = 0; a < fields.length; a++)
+            rowCellsList[a] = $("<td/>", { html: fields[a] });
+
+        return rowCellsList;
+    }
+
+    function getTip() {
+        var body = {};
+        body.tableId = @(Model.Id);
+
+        return $.ajax({
+            type: "POST",
+            url: "Table/GetTip",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(body)
+        });
     }
 
     function testDishes() {

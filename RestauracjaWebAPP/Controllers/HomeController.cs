@@ -191,6 +191,58 @@ namespace RestauracjaWebAPP.Controllers
             return Json(quantity);
         }
 
+        [HttpPost]
+        [Route("Table/GetTip")]
+        public ActionResult GetTip()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            var inputContainer = new
+            {
+                tableId = -1,
+            };
+            Order order;
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                order = GetOrder(inputContainer.tableId);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Nie udało się usunąć zamówienia!" });
+            }
+
+            return Json(order.GetTip(5));
+        }
+
+        [HttpPost]
+        [Route("Table/CloseOrder")]
+        public ActionResult CloseOrder()
+        {
+            var inputJson = new StreamReader(Request.InputStream).ReadToEnd();
+            var inputContainer = new
+            {
+                tableId = -1,
+            };
+            Order order;
+
+            try
+            {
+                inputContainer = JsonConvert.DeserializeAnonymousType(inputJson, inputContainer);
+                order = GetOrder(inputContainer.tableId);
+                order.Payed = true;
+                UpdateOrder(order, inputContainer.tableId);
+                RemoveOrder(inputContainer.tableId);
+            }
+            catch
+            {
+                return Json(new { success = false, message = "Nie udało się usunąć zamówienia!" });
+            }
+
+            
+            return Json(new { success = true, message = "OK" });
+        }
+
 
         #region Session Controller
 
@@ -349,6 +401,13 @@ namespace RestauracjaWebAPP.Controllers
         {
             Room room = GetRoom();
             room.Tables[tableId].CurrentOrder = new Order();
+            UpdateRoom(room);
+        }
+
+        private void UpdateOrder(Order order, int tableId)
+        {
+            Room room = GetRoom();
+            room.Tables[tableId].CurrentOrder = order;
             UpdateRoom(room);
         }
 
